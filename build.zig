@@ -14,18 +14,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const crypto_choice = b.option(
-        CryptoBackend,
-        "crypto-backend",
-        "Crypto backend: auto|openssl|mbedtls|libgcrypt|wincng",
-    ) orelse .auto;
+    const crypto_choice = b.option(CryptoBackend, "crypto-backend", "Crypto backend: auto|openssl|mbedtls|libgcrypt|wincng") orelse .auto;
 
-    const enable_zlib = b.option(
-        bool,
-        "with-zlib",
-        "Enable SSH payload compression (links zlib)",
-    ) orelse true;
-
+    // zlib probably won't work on Windows (untested)
+    const zlib = b.option(bool, "zlib", "Enable SSH payload compression (links zlib)") orelse false;
     const strip = b.option(bool, "strip", "Omit debug information");
     const pic = b.option(bool, "pie", "Produce Position Independent Code");
 
@@ -55,6 +47,7 @@ pub fn build(b: *std.Build) void {
         },
         .{
             .LIBSSH2_API = if (is_windows) "__declspec(dllexport)" else "",
+            .LIBSSH2_HAVE_ZLIB = zlib,
             .HAVE_SYS_UIO_H = !is_windows,
             .HAVE_WRITEV = !is_windows,
             .HAVE_SYS_SOCKET_H = !is_windows,
@@ -63,6 +56,8 @@ pub fn build(b: *std.Build) void {
             .HAVE_SYS_TYPES_H = !is_windows,
         },
     );
+
+    lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
 
     // Backend agnostic sources
     var sources = std.ArrayList([]const u8){};
@@ -139,20 +134,6 @@ pub fn build(b: *std.Build) void {
             }
         },
     }
-
-    if (enable_zlib) {
-        lib.root_module.addCMacro("LIBSSH2_HAVE_ZLIB", "1");
-        if (is_windows) {
-            // user is opting in; see option 2/3 below for how they'll satisfy it
-            switch (target.result.abi) {
-                .msvc => lib.linkSystemLibrary("zlibstatic"), // typical vcpkg name for static
-                else => lib.linkSystemLibrary("z"), // MinGW/MSYS name
-            }
-        } else {
-            lib.linkSystemLibrary("z"); // Linux/BSD/macOS (Homebrew) common name
-        }
-    }
-    lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
 
     lib.addConfigHeader(features);
     lib.addIncludePath(libssh2_src.path("include"));
