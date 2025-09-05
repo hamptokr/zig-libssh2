@@ -28,7 +28,12 @@ pub fn build(b: *std.Build) void {
     const wincng = (crypto_choice == .auto and is_windows) or crypto_choice == .wincng;
     const libgcrypt = crypto_choice == .libgcrypt;
 
-    const config_header = b.addConfigHeader(.{}, .{
+    const config_header = b.addConfigHeader(.{
+        .style = .{
+            .cmake = upstream.path("src/libssh2_config_cmake.h.in"),
+        },
+        .include_path = "libssh2_config.h",
+    }, .{
         .LIBSSH2_API = switch (target.result.os.tag) {
             .windows => "__declspec(dllexport)",
             else => "",
@@ -44,8 +49,6 @@ pub fn build(b: *std.Build) void {
         .HAVE_STDINT_H = true,
     });
 
-    const libssh2_src = b.dependency("libssh2", .{});
-
     const ssh2_lib = b.addLibrary(.{
         .version = version,
         .name = "ssh2",
@@ -59,14 +62,14 @@ pub fn build(b: *std.Build) void {
         }),
     });
     b.installArtifact(ssh2_lib);
-    ssh2_lib.installHeadersDirectory(libssh2_src.path("include"), "", .{});
+    ssh2_lib.installHeadersDirectory(upstream.path("include"), "", .{});
     ssh2_lib.root_module.addConfigHeader(config_header);
     ssh2_lib.root_module.addIncludePath(upstream.path("include"));
     ssh2_lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
     ssh2_lib.root_module.addCSourceFiles(.{ .files = ssh2_src, .root = upstream.path(""), .flags = ssh2_flags });
 
     if (mbedtls) {
-        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("/src/mbedtls.c"), .flags = ssh2_flags });
+        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("src/mbedtls.c"), .flags = ssh2_flags });
         ssh2_lib.root_module.addCMacro("LIBSSH2_MBEDTLS", "1");
         ssh2_lib.linkSystemLibrary("mbedtls");
         ssh2_lib.linkSystemLibrary("mbedcrypto");
@@ -74,14 +77,14 @@ pub fn build(b: *std.Build) void {
     }
 
     if (openssl) {
-        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("/src/openssl.c"), .flags = ssh2_flags });
+        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("src/openssl.c"), .flags = ssh2_flags });
         ssh2_lib.root_module.addCMacro("LIBSSH2_OPENSSL", "1");
         ssh2_lib.linkSystemLibrary("ssl");
         ssh2_lib.linkSystemLibrary("crypto");
     }
 
     if (wincng) {
-        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("/src/wincng.c"), .flags = ssh2_flags });
+        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("src/wincng.c"), .flags = ssh2_flags });
         ssh2_lib.root_module.addCMacro("LIBSSH2_WINCNG", "1");
         // Windows system libs (zig handles names)
         ssh2_lib.linkSystemLibrary("bcrypt");
@@ -89,7 +92,7 @@ pub fn build(b: *std.Build) void {
     }
 
     if (libgcrypt) {
-        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("/src/libgcrypt.c"), .flags = ssh2_flags });
+        ssh2_lib.root_module.addCSourceFile(.{ .file = upstream.path("src/libgcrypt.c"), .flags = ssh2_flags });
         ssh2_lib.root_module.addCMacro("LIBSSH2_LIBGCRYPT", "1");
         ssh2_lib.linkSystemLibrary("gcrypt");
     }
