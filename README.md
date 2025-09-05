@@ -32,9 +32,10 @@ your_exe.linkLibrary(libssh2_dependency.artifact("ssh2"));
 const libssh2_dependency = b.dependency("libssh2", .{
     .target = target,
     .optimize = optimize,
-    .@"with-zlib" = true, // links to zlib for payload compression if enabled (default=true)
-    .@"crypto-backend" = .auto, // auto will to default to wincng on windows, openssl everywhere else. (default=.auto)
+    .zlib = true, // links to zlib for payload compression if enabled (default=true)
     .strip = true, // Strip debug information (default=false)
+    .linkage = .static, // Whether to link statically or dynamically (default=static)
+    .@"crypto-backend" = .auto, // auto will to default to wincng on windows, openssl everywhere else. (default=auto)
 });
 ```
 
