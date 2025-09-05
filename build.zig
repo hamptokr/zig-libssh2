@@ -52,6 +52,8 @@ pub fn build(b: *std.Build) void {
             .HAVE_NETINET_IN_H = !is_windows,
             .HAVE_ARPA_INET_H = !is_windows,
             .HAVE_SYS_TYPES_H = !is_windows,
+            .HAVE_INTTYPES_H = true,
+            .HAVE_STDINT_H = true,
         },
     );
 
