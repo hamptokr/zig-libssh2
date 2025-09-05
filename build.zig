@@ -142,7 +142,15 @@ pub fn build(b: *std.Build) void {
 
     if (enable_zlib) {
         lib.root_module.addCMacro("LIBSSH2_HAVE_ZLIB", "1");
-        lib.linkSystemLibrary("z");
+        if (is_windows) {
+            // user is opting in; see option 2/3 below for how they'll satisfy it
+            switch (target.result.abi) {
+                .msvc => lib.linkSystemLibrary("zlibstatic"), // typical vcpkg name for static
+                else => lib.linkSystemLibrary("z"), // MinGW/MSYS name
+            }
+        } else {
+            lib.linkSystemLibrary("z"); // Linux/BSD/macOS (Homebrew) common name
+        }
     }
     lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
 
