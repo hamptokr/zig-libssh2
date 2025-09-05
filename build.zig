@@ -15,8 +15,6 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const crypto_choice = b.option(CryptoBackend, "crypto-backend", "Crypto backend: auto|openssl|mbedtls|libgcrypt|wincng") orelse .auto;
-
-    // zlib probably won't work on Windows (untested)
     const zlib = b.option(bool, "zlib", "Enable SSH payload compression (links zlib)") orelse false;
     const strip = b.option(bool, "strip", "Omit debug information");
     const pic = b.option(bool, "pie", "Produce Position Independent Code");
@@ -58,6 +56,17 @@ pub fn build(b: *std.Build) void {
     );
 
     lib.root_module.addCMacro("HAVE_CONFIG_H", "1");
+
+    if (zlib) {
+        if (b.systemIntegrationOption("zlib", .{})) {
+            lib.root_module.linkSystemLibrary("zlib", .{});
+        } else if (b.lazyDependency("zlib", .{
+            .target = target,
+            .optimize = optimize,
+        })) |zlib_dependency| {
+            lib.root_module.linkLibrary(zlib_dependency.artifact("z"));
+        }
+    }
 
     // Backend agnostic sources
     var sources = std.ArrayList([]const u8){};
