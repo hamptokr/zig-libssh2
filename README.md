@@ -11,7 +11,7 @@ First, update your `build.zig.zon`:
 ```
 # Initialize a `zig build` project if you haven't already
 zig init
-zig fetch --save git+https://github.com/allyourcodebase/libssh2.git#libssh2-1.11.1
+zig fetch --save git+https://github.com/hamptokr/zig-libssh2.git#libssh2-1.11.1
 ```
 
 You can then import `libssh2` in your `build.zig` with:
